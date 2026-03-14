@@ -60,7 +60,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'eccomerce_project.wsgi.application'
+WSGI_APPLICATION = 'ecommerce_project.wsgi.application'
 
 # Database - Neon PostgreSQL
 DATABASE_URL = os.getenv('DATABASE_URL', '')
