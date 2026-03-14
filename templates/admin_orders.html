@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Management - Admin{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem;">
+    <h1>Order Management</h1>
+    
+    <div class="card mt-2">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="orders-tbody">
+                <!-- Loading... -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div class="modal-header">
+            <h2 id="modalOrderId">Order Details</h2>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (!auth.isAdmin()) window.location.href = '/';
+
+    let allOrders = [];
+
+    const tbody = document.getElementById('orders-tbody');
+
+    function showTableSkeletons() {
+        tbody.innerHTML = Array(5).fill(0).map(() => `
+            <tr>
+                <td><div class="skeleton" style="width: 60px; height: 1rem;"></div></td>
+                <td><div class="skeleton" style="width: 120px; height: 1rem;"></div></td>
+                <td><div class="skeleton" style="width: 100px; height: 1rem;"></div></td>
+                <td><div class="skeleton" style="width: 70px; height: 1rem;"></div></td>
+                <td><div class="skeleton" style="width: 90px; height: 2rem;"></div></td>
+                <td><div class="skeleton" style="width: 60px; height: 2rem;"></div></td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadOrders() {
+        showTableSkeletons();
+        const res = await auth.apiFetch('/api/admin/orders/');
+        allOrders = await res.json();
+        
+        tbody.innerHTML = allOrders.map(order => `
+            <tr>
+                <td>#${order.id}</td>
+                <td>${order.user.username}</td>
+                <td>${new Date(order.created_date).toLocaleDateString()}</td>
+                <td>$${order.total_amount}</td>
+                <td>
+                    <select onchange="updateStatus(${order.id}, this.value)" style="padding: 0.25rem; border-radius: 0.25rem; background: var(--bg-white); color: var(--text-main); border: 1px solid var(--border-color);">
+                        <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                        <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+                        <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+                        <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="showOrderDetails(${order.id})">Details</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function showOrderDetails(id) {
+        const order = allOrders.find(o => o.id === id);
+        if (!order) return;
+
+        document.getElementById('modalOrderId').innerText = `Order #${order.id}`;
+        const body = document.getElementById('modalBody');
+        
+        const addr = order.address;
+        const addressHtml = `
+            <div style="margin-bottom: 2rem;">
+                <h4>Delivery Address</h4>
+                <p><strong>${addr.full_name}</strong></p>
+                <p>${addr.street}</p>
+                <p>${addr.city}, ${addr.state} - ${addr.zip_code}</p>
+                <p>${addr.country}</p>
+                <p>Phone: ${addr.phone}</p>
+            </div>
+        `;
+
+        const itemsHtml = `
+            <h4>Order Items</h4>
+            <div class="order-items-list">
+                ${order.items.map(item => `
+                    <div class="order-item-row">
+                        <span>${item.product.name} (x${item.quantity})</span>
+                        <span>$${item.subtotal}</span>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: 700; border-top: 2px solid var(--text-main); padding-top: 1rem;">
+                <span>Total Amount</span>
+                <span>$${order.total_amount}</span>
+            </div>
+        `;
+
+        body.innerHTML = addressHtml + itemsHtml;
+        document.getElementById('orderModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('orderModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('orderModal')) {
+            closeModal();
+        }
+    }
+
+    async function updateStatus(id, status) {
+        const res = await auth.apiFetch(`/api/admin/orders/${id}/`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+            ui.showNotification('Status updated');
+        }
+    }
+
+    loadOrders();
+</script>
+{% endblock %}

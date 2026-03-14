@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Address - E-Commerce Store{% endblock %}
+
+{% block content %}
+<div class="auth-container" style="max-width: 600px;">
+    <div class="card">
+        <h2 class="mb-2">Add Delivery Address</h2>
+        <form id="address-form">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="full_name" required>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" id="phone" required>
+            </div>
+            <div class="form-group">
+                <label>Street Address</label>
+                <textarea id="street" rows="3" required></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="city" required>
+                </div>
+                <div class="form-group">
+                    <label>State</label>
+                    <input type="text" id="state" required>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Zip Code</label>
+                    <input type="text" id="zip_code" required>
+                </div>
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" id="country" value="India" required>
+                </div>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="is_default" style="width: auto;">
+                <label style="margin-bottom: 0;">Set as default address</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Save Address</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (!auth.isAuthenticated()) window.location.href = '/login/';
+
+    document.getElementById('address-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            full_name: document.getElementById('full_name').value,
+            phone: document.getElementById('phone').value,
+            street: document.getElementById('street').value,
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zip_code: document.getElementById('zip_code').value,
+            country: document.getElementById('country').value,
+            is_default: document.getElementById('is_default').checked
+        };
+        
+        const res = await auth.apiFetch('/api/addresses/', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            ui.showNotification('Address saved!');
+            setTimeout(() => window.location.href = '/checkout/', 1000);
+        } else {
+            ui.showNotification('Failed to save address', 'error');
+        }
+    });
+</script>
+{% endblock %}

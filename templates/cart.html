@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Cart - E-Commerce Store{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem;">
+    <h1>Shopping Cart</h1>
+    
+    <div id="cart-content" style="margin-top: 2rem;">
+        <!-- Loading... -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (!auth.isAuthenticated()) window.location.href = '/login/';
+
+    const content = document.getElementById('cart-content');
+
+    function showSkeletons() {
+        content.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                <div class="card">
+                    <div class="skeleton" style="height: 1.5rem; width: 100%; margin-bottom: 2rem;"></div>
+                    <div class="skeleton" style="height: 4rem; width: 100%; margin-bottom: 1rem;"></div>
+                    <div class="skeleton" style="height: 4rem; width: 100%; margin-bottom: 1rem;"></div>
+                    <div class="skeleton" style="height: 4rem; width: 100%;"></div>
+                </div>
+                <div class="card">
+                    <div class="skeleton" style="height: 2rem; width: 60%; margin-bottom: 1.5rem;"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton" style="height: 3rem; width: 100%; margin-top: 2rem;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function loadCart() {
+        showSkeletons();
+        const cart = await api.getCart();
+        
+        if (!cart.items || cart.items.length === 0) {
+            content.innerHTML = `
+                <div class="card text-center" style="padding: 4rem;">
+                    <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 2rem;">Your cart is empty</p>
+                    <a href="/products/" class="btn btn-primary">Start Shopping</a>
+                </div>
+            `;
+            return;
+        }
+
+        content.innerHTML = `
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+                <div class="card">
+                    <table class="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${cart.items.map(item => `
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 1rem;">
+                                            <img src="${item.product.image || 'https://via.placeholder.com/60'}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 0.25rem;">
+                                            <div>
+                                                <p style="font-weight: 600;">${item.product.name}</p>
+                                                <p style="font-size: 0.8rem; color: var(--text-muted);">${item.product.category_name}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>$${item.product.price}</td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <button onclick="updateQty(${item.id}, ${item.quantity - 1})" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">-</button>
+                                            <span>${item.quantity}</span>
+                                            <button onclick="updateQty(${item.id}, ${item.quantity + 1})" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">+</button>
+                                        </div>
+                                    </td>
+                                    <td>$${item.subtotal}</td>
+                                    <td>
+                                        <button onclick="removeItem(${item.id})" style="background: none; border: none; color: var(--accent-error); cursor: pointer; font-size: 1rem;">&times;</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="card" style="height: fit-content;">
+                    <h3 style="margin-bottom: 1.5rem;">Order Summary</h3>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span>Subtotal</span>
+                        <span>$${cart.total}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <span>Shipping</span>
+                        <span style="color: var(--accent-success);">Free</span>
+                    </div>
+                    <hr style="border: none; border-top: 1px solid var(--glass-border); margin: 1.5rem 0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.25rem; margin-bottom: 2rem;">
+                        <span>Total</span>
+                        <span>$${cart.total}</span>
+                    </div>
+                    <a href="/checkout/" class="btn btn-primary" style="width: 100%; text-align: center;">Proceed to Checkout</a>
+                </div>
+            </div>
+        `;
+    }
+
+    async function updateQty(itemId, qty) {
+        await api.updateCartItem(itemId, qty);
+        loadCart();
+    }
+
+    async function removeItem(itemId) {
+        await api.removeFromCart(itemId);
+        loadCart();
+    }
+
+    loadCart();
+</script>
+{% endblock %}
