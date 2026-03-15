@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'cloudinary_storage',
+    'cloudinary',
     # Local
     'ecommerce',
 ]
@@ -126,6 +128,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Media files (product images)
 MEDIA_URL = '/uploads/'
 MEDIA_ROOT = BASE_DIR / 'uploads'
+
+# Cloudinary Settings
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
+}
+
+if os.getenv('CLOUDINARY_CLOUD_NAME'):
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
